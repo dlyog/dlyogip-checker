@@ -1,0 +1,102 @@
+name: Deploy API Gateway
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_api:
+    name: Deploy API Gateway for Lambda
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    env:
+      AWS_REGION: us-west-2
+      API_NAME: dlyogipchecker-api
+      RESOURCE_PATH: ipcheck
+      STAGE_NAME: prod
+      LAMBDA_FUNCTION_NAME: dlyogipchecker
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create REST API (if not exists)
+        id: create-api
+        run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='${API_NAME}'].id" --output text)
+          if [ -z "$API_ID" ]; then
+            API_ID=$(aws apigateway create-rest-api --name "${API_NAME}" --query 'id' --output text)
+            echo "✅ Created API Gateway with ID: $API_ID"
+          else
+            echo "☑️ API Gateway already exists with ID: $API_ID"
+          fi
+          echo "api_id=$API_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get Root Resource ID
+        id: get-root
+        run: |
+          RESOURCE_ID=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?path=='/'].id" --output text)
+          echo "resource_id=$RESOURCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Create Resource and Method
+        run: |
+          RESOURCE_EXISTS=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?pathPart=='${RESOURCE_PATH}'].id" --output text)
+
+          if [ -z "$RESOURCE_EXISTS" ]; then
+            RESOURCE_ID=$(aws apigateway create-resource \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --parent-id ${{ steps.get-root.outputs.resource_id }} \
+              --path-part "${RESOURCE_PATH}" --query 'id' --output text)
+
+            echo "✅ Created resource /${RESOURCE_PATH}"
+
+            aws apigateway put-method \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --authorization-type "NONE"
+
+            LAMBDA_ARN=$(aws lambda get-function --function-name ${LAMBDA_FUNCTION_NAME} --query 'Configuration.FunctionArn' --output text)
+
+            aws apigateway put-integration \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --type AWS_PROXY \
+              --integration-http-method POST \
+              --uri "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/${LAMBDA_ARN}/invocations"
+
+            echo "✅ Integrated Lambda function with /${RESOURCE_PATH}"
+          else
+            echo "☑️ Resource /${RESOURCE_PATH} already exists. Skipping."
+          fi
+
+      - name: Deploy API to stage
+        run: |
+          aws apigateway create-deployment \
+            --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --stage-name "${STAGE_NAME}"
+
+          echo "✅ API deployed to stage: ${STAGE_NAME}"
+
+      - name: Add Permission for Lambda to be triggered by API Gateway
+        run: |
+          aws lambda add-permission \
+            --function-name ${LAMBDA_FUNCTION_NAME} \
+            --statement-id apigateway-access \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:$(aws sts get-caller-identity --query Account --output text):${{ steps.create-api.outputs.api_id }}/*/POST/${RESOURCE_PATH}" || echo "Permission already exists"
+
+      - name: Output Public URL
+        run: |
+          echo "🌐 Public API URL:"
+          echo "https://${{ steps.create-api.outputs.api_id }}.execute-api.${AWS_REGION}.amazonaws.com/${STAGE_NAME}/${RESOURCE_PATH}"

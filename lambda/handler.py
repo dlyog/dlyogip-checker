@@ -1,20 +1,17 @@
-import json
+import os
 
 def lambda_handler(event, context):
-    try:
-        body = json.loads(event.get('body', '{}'))
-        print(f"📥 Received payload: {body}")
+    secret = os.environ.get("API_SECRET_KEY")
+    headers = event.get("headers", {})
+    client_secret = headers.get("x-api-secret")
 
+    if client_secret != secret:
         return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': 'Received IP data successfully',
-                'input': body
-            }),
+            "statusCode": 401,
+            "body": "Unauthorized"
         }
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
+
+    return {
+        "statusCode": 200,
+        "body": "Valid Request"
+    }

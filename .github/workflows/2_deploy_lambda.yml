@@ -49,3 +49,11 @@ jobs:
             --s3-bucket dlyogipchecker-bucket \
             --s3-key lambda.zip \
             --region us-west-2
+      
+      - name: Update Lambda Environment Variables
+        run: |
+          aws lambda update-function-configuration \
+            --function-name dlyogipchecker \
+            --environment "Variables={API_SECRET_KEY=${{ secrets.API_SECRET_KEY }}}" \
+            --region us-west-2
+
