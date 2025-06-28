@@ -1,3 +1,4 @@
+# .github/workflows/deploy_lambda.yml
 name: Deploy Lambda Code
 
 on:
@@ -26,7 +27,22 @@ jobs:
       - name: Upload Lambda zip to S3
         run: aws s3 cp infra/lambda.zip s3://dlyogipchecker-bucket/lambda.zip
 
-      - name: Update Lambda Function Code
+      - name: Create Lambda function (if not exists)
+        run: |
+          if aws lambda get-function --function-name dlyogipchecker >/dev/null 2>&1; then
+            echo "☑️ Lambda function already exists."
+          else
+            ROLE_ARN=$(aws iam get-role --role-name dlyogipchecker-lambda-role --query 'Role.Arn' --output text)
+            aws lambda create-function \
+              --function-name dlyogipchecker \
+              --runtime python3.11 \
+              --handler handler.lambda_handler \
+              --code S3Bucket=dlyogipchecker-bucket,S3Key=lambda.zip \
+              --role "$ROLE_ARN" \
+              --region us-west-2
+          fi
+
+      - name: Update Lambda function code
         run: |
           aws lambda update-function-code \
             --function-name dlyogipchecker \

@@ -32,20 +32,3 @@ else
   echo "☑️  IAM Role $ROLE_NAME already exists."
 fi
 
-# 3. Create Lambda function if not exists and zip file exists
-if aws lambda get-function --function-name "$LAMBDA_NAME" >/dev/null 2>&1; then
-  echo "☑️  Lambda function $LAMBDA_NAME already exists."
-elif [ -f "infra/$ZIP_FILE" ]; then
-  LAMBDA_ROLE_ARN=$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.Arn' --output text)
-  aws lambda create-function \
-    --function-name "$LAMBDA_NAME" \
-    --runtime python3.11 \
-    --handler handler.lambda_handler \
-    --zip-file fileb://infra/$ZIP_FILE \
-    --role "$LAMBDA_ROLE_ARN" \
-    --region "$REGION"
-  echo "✅ Created Lambda function: $LAMBDA_NAME"
-else
-  echo "⚠️ Skipped Lambda creation: Zip file infra/$ZIP_FILE not found."
-fi
-
