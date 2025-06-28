@@ -5,6 +5,8 @@ set -e
 REGION="us-west-2"
 BUCKET_NAME="dlyogipchecker-bucket"
 ROLE_NAME="dlyogipchecker-lambda-role"
+LAMBDA_NAME="dlyogipchecker"
+ZIP_FILE="lambda.zip"
 
 echo "✅ Starting infrastructure setup..."
 
