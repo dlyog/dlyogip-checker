@@ -1,0 +1,4 @@
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}

@@ -1,0 +1,26 @@
+name: Deploy AWS Infrastructure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy infra on AWS
+    runs-on: [self-hosted,Linux,X64,aws,ipchecker]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Make script executable
+        run: chmod +x infra/create_infra.sh
+
+      - name: Deploy Infrastructure
+        run: ./infra/create_infra.sh
