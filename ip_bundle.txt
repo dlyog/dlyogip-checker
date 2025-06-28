@@ -1,0 +1,2271 @@
+# requirements.txt
+requests
+boto3
+typer
+json
+
+# README.md
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI ()
+- GitHub Action (deploys infra + Lambda + config)
+
+
+
+# init_project.sh
+#!/bin/bash
+
+set -e
+
+echo "Creating directory structure..."
+
+mkdir -p infra
+mkdir -p lambda
+mkdir -p cli
+mkdir -p .github/workflows
+
+touch infra/{deploy.sh,README.md}
+touch lambda/{handler.py,README.md}
+touch cli/{dlyogipchecker.py,fetch_config.py,__init__.py}
+touch .github/workflows/deploy.yml
+
+# Sample README and config file
+cat > README.md <<EOF
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI (`dlyogipchecker`)
+- GitHub Action (deploys infra + Lambda + config)
+
+EOF
+
+cat > config-template.json <<EOF
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+EOF
+
+echo "✅ Project structure created."
+#!/bin/bash
+
+set -e
+
+echo "Creating directory structure..."
+
+mkdir -p infra
+mkdir -p lambda
+mkdir -p cli
+mkdir -p .github/workflows
+
+touch infra/{deploy.sh,README.md}
+touch lambda/{handler.py,README.md}
+touch cli/{dlyogipchecker.py,fetch_config.py,__init__.py}
+touch .github/workflows/deploy.yml
+
+# Sample README and config file
+cat > README.md <<EOF
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI (`dlyogipchecker`)
+- GitHub Action (deploys infra + Lambda + config)
+
+EOF
+
+cat > config-template.json <<EOF
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+EOF
+
+echo "✅ Project structure created."
+
+
+# .gitignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# C extensions
+*.so
+cli/config.json
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# UV
+#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#uv.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+#poetry.toml
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
+#   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
+#pdm.lock
+#pdm.toml
+.pdm-python
+.pdm-build/
+
+# pixi
+#   Similar to Pipfile.lock, it is generally recommended to include pixi.lock in version control.
+#pixi.lock
+#   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
+#   in the .venv directory. It is recommended not to include this directory in version control.
+.pixi
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+
+# Abstra
+# Abstra is an AI-powered process automation framework.
+# Ignore directories containing user credentials, local state, and settings.
+# Learn more at https://abstra.io/docs
+.abstra/
+
+# Visual Studio Code
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  you could uncomment the following to ignore the entire vscode folder
+# .vscode/
+
+# Ruff stuff:
+.ruff_cache/
+
+# PyPI configuration file
+.pypirc
+
+# Cursor
+#  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
+#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
+#  refer to https://docs.cursor.com/context/ignore-files
+.cursorignore
+.cursorindexingignore
+
+# Marimo
+marimo/_static/
+marimo/_lsp/
+__marimo__/
+
+
+# ip_bundle.txt
+# requirements.txt
+requests
+boto3
+typer
+json
+
+# README.md
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI ()
+- GitHub Action (deploys infra + Lambda + config)
+
+
+
+# init_project.sh
+#!/bin/bash
+
+set -e
+
+echo "Creating directory structure..."
+
+mkdir -p infra
+mkdir -p lambda
+mkdir -p cli
+mkdir -p .github/workflows
+
+touch infra/{deploy.sh,README.md}
+touch lambda/{handler.py,README.md}
+touch cli/{dlyogipchecker.py,fetch_config.py,__init__.py}
+touch .github/workflows/deploy.yml
+
+# Sample README and config file
+cat > README.md <<EOF
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI (`dlyogipchecker`)
+- GitHub Action (deploys infra + Lambda + config)
+
+EOF
+
+cat > config-template.json <<EOF
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+EOF
+
+echo "✅ Project structure created."
+#!/bin/bash
+
+set -e
+
+echo "Creating directory structure..."
+
+mkdir -p infra
+mkdir -p lambda
+mkdir -p cli
+mkdir -p .github/workflows
+
+touch infra/{deploy.sh,README.md}
+touch lambda/{handler.py,README.md}
+touch cli/{dlyogipchecker.py,fetch_config.py,__init__.py}
+touch .github/workflows/deploy.yml
+
+# Sample README and config file
+cat > README.md <<EOF
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI (`dlyogipchecker`)
+- GitHub Action (deploys infra + Lambda + config)
+
+EOF
+
+cat > config-template.json <<EOF
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+EOF
+
+echo "✅ Project structure created."
+
+
+# .gitignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# C extensions
+*.so
+cli/config.json
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# UV
+#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#uv.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+#poetry.toml
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
+#   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
+#pdm.lock
+#pdm.toml
+.pdm-python
+.pdm-build/
+
+# pixi
+#   Similar to Pipfile.lock, it is generally recommended to include pixi.lock in version control.
+#pixi.lock
+#   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
+#   in the .venv directory. It is recommended not to include this directory in version control.
+.pixi
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+
+# Abstra
+# Abstra is an AI-powered process automation framework.
+# Ignore directories containing user credentials, local state, and settings.
+# Learn more at https://abstra.io/docs
+.abstra/
+
+# Visual Studio Code
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  you could uncomment the following to ignore the entire vscode folder
+# .vscode/
+
+# Ruff stuff:
+.ruff_cache/
+
+# PyPI configuration file
+.pypirc
+
+# Cursor
+#  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
+#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
+#  refer to https://docs.cursor.com/context/ignore-files
+.cursorignore
+.cursorindexingignore
+
+# Marimo
+marimo/_static/
+marimo/_lsp/
+__marimo__/
+
+
+# ip_bundle.txt
+# requirements.txt
+requests
+boto3
+typer
+json
+
+# README.md
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI ()
+- GitHub Action (deploys infra + Lambda + config)
+
+
+
+# init_project.sh
+#!/bin/bash
+
+set -e
+
+echo "Creating directory structure..."
+
+mkdir -p infra
+mkdir -p lambda
+mkdir -p cli
+mkdir -p .github/workflows
+
+touch infra/{deploy.sh,README.md}
+touch lambda/{handler.py,README.md}
+touch cli/{dlyogipchecker.py,fetch_config.py,__init__.py}
+touch .github/workflows/deploy.yml
+
+# Sample README and config file
+cat > README.md <<EOF
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI (`dlyogipchecker`)
+- GitHub Action (deploys infra + Lambda + config)
+
+EOF
+
+cat > config-template.json <<EOF
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+EOF
+
+echo "✅ Project structure created."
+#!/bin/bash
+
+set -e
+
+echo "Creating directory structure..."
+
+mkdir -p infra
+mkdir -p lambda
+mkdir -p cli
+mkdir -p .github/workflows
+
+touch infra/{deploy.sh,README.md}
+touch lambda/{handler.py,README.md}
+touch cli/{dlyogipchecker.py,fetch_config.py,__init__.py}
+touch .github/workflows/deploy.yml
+
+# Sample README and config file
+cat > README.md <<EOF
+# dlyogip-checker
+
+This project is built for the AWS Lambda Hackathon by **DLYog Lab Research Services LLC**.
+
+## Overview
+
+A CLI tool that allows secure code submission to a Lambda backend for analysis. Judges or users upload code via CLI, which triggers a Lambda function to analyze the content and return results.
+
+## Components
+
+- AWS Lambda (core compute)
+- API Gateway (Lambda trigger)
+- S3 (config storage)
+- CLI (`dlyogipchecker`)
+- GitHub Action (deploys infra + Lambda + config)
+
+EOF
+
+cat > config-template.json <<EOF
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+EOF
+
+echo "✅ Project structure created."
+
+
+# .gitignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# C extensions
+*.so
+cli/config.json
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# UV
+#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#uv.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+#poetry.toml
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
+#   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
+#pdm.lock
+#pdm.toml
+.pdm-python
+.pdm-build/
+
+# pixi
+#   Similar to Pipfile.lock, it is generally recommended to include pixi.lock in version control.
+#pixi.lock
+#   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
+#   in the .venv directory. It is recommended not to include this directory in version control.
+.pixi
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+
+# Abstra
+# Abstra is an AI-powered process automation framework.
+# Ignore directories containing user credentials, local state, and settings.
+# Learn more at https://abstra.io/docs
+.abstra/
+
+# Visual Studio Code
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  you could uncomment the following to ignore the entire vscode folder
+# .vscode/
+
+# Ruff stuff:
+.ruff_cache/
+
+# PyPI configuration file
+.pypirc
+
+# Cursor
+#  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
+#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
+#  refer to https://docs.cursor.com/context/ignore-files
+.cursorignore
+.cursorindexingignore
+
+# Marimo
+marimo/_static/
+marimo/_lsp/
+__marimo__/
+
+
+# config-template.json
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+
+
+# infra/create_infra.sh
+#!/bin/bash
+set -e
+
+# Configurable values
+REGION="us-west-2"
+BUCKET_NAME="dlyogipchecker-bucket"
+ROLE_NAME="dlyogipchecker-lambda-role"
+LAMBDA_NAME="dlyogipchecker"
+ZIP_FILE="lambda.zip"
+
+echo "✅ Starting infrastructure setup..."
+
+# 1. Create S3 bucket if not exists
+if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+  echo "☑️  S3 bucket $BUCKET_NAME already exists."
+else
+  aws s3api create-bucket --bucket "$BUCKET_NAME" --region "$REGION" \
+    --create-bucket-configuration LocationConstraint="$REGION"
+  echo "✅ Created S3 bucket: $BUCKET_NAME"
+fi
+
+# 2. Create IAM Role if not exists
+if ! aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
+  aws iam create-role \
+    --role-name "$ROLE_NAME" \
+    --assume-role-policy-document file://infra/trust-policy.json
+  aws iam attach-role-policy \
+    --role-name "$ROLE_NAME" \
+    --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  echo "✅ Created IAM role: $ROLE_NAME"
+else
+  echo "☑️  IAM Role $ROLE_NAME already exists."
+fi
+
+
+
+# infra/trust-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+
+# infra/README.md
+
+
+# infra/deploy.sh
+
+
+# cli/__init__.py
+
+
+# cli/dlyogipchecker.py
+import typer
+import boto3
+import os
+import json
+from pathlib import Path
+import requests
+
+app = typer.Typer()
+
+CONFIG_PATH = os.path.expanduser("~/.dlyogipchecker/config.json")
+OUTPUT_FILE = "ip_bundle.txt"
+
+IGNORE_DIRS = {'.git', '__pycache__', '.venv', 'node_modules'}
+
+def load_config():
+    with open(CONFIG_PATH, "r") as f:
+        return json.load(f)
+
+def should_ignore(path: Path) -> bool:
+    return any(part in IGNORE_DIRS for part in path.parts)
+
+def generate_bundle(project_path: str) -> str:
+    project_root = Path(project_path).resolve()
+    bundle_lines = []
+
+    for file in project_root.rglob("*"):
+        if file.is_file() and not should_ignore(file.relative_to(project_root)):
+            rel_path = file.relative_to(project_root)
+            bundle_lines.append(f"# {rel_path}")
+            try:
+                content = file.read_text(errors='ignore')
+                bundle_lines.append(content)
+            except Exception as e:
+                bundle_lines.append(f"[Could not read file: {e}]")
+            bundle_lines.append("")  # newline between files
+
+    with open(OUTPUT_FILE, "w") as f:
+        f.write("\n".join(bundle_lines))
+
+    return OUTPUT_FILE
+
+@app.command()
+def push(project_path: str):
+    """
+    Generate IP bundle and upload to S3
+    """
+    config = load_config()
+    bucket = config["s3_bucket_name"]
+    key = "ip_bundles/ip_bundle.txt"
+
+    typer.echo("📦 Generating bundle...")
+    output_file = generate_bundle(project_path)
+
+    s3 = boto3.client("s3", region_name="us-west-2")
+    s3.upload_file(output_file, bucket, key)
+
+    typer.echo(f"✅ Uploaded to S3: s3://{bucket}/{key}")
+
+@app.command()
+def trigger(to_email: str):
+    """
+    Trigger Lambda API to process the uploaded bundle and send email.
+    """
+    config = load_config()
+    api_url = config.get("api_url")
+    api_secret = config.get("api_secret")
+
+    if not api_url or not api_secret:
+        typer.echo("❌ Missing 'api_url' or 'api_secret' in config.")
+        raise typer.Exit(1)
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-secret": api_secret
+    }
+
+    payload = {
+        "to_email": to_email
+    }
+
+    typer.echo(f"📡 Triggering Lambda at: {api_url}")
+    response = requests.post(api_url, headers=headers, json=payload)
+
+    typer.echo(f"✅ Status Code: {response.status_code}")
+    typer.echo(f"📨 Response: {response.text}")
+
+
+if __name__ == "__main__":
+    app()
+
+
+# cli/fetch_config.py
+
+
+# lambda/handler.py
+import os
+import smtplib
+import json
+from email.message import EmailMessage
+
+def send_email(to_email):
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_password = os.environ.get("SMTP_PASSWORD")
+
+    msg = EmailMessage()
+    msg["Subject"] = "DLyog IP Checker Notification"
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+    msg.set_content("Hello,\n\nYour submission has been received and is being processed.\n\n— DLyog IPChecker")
+
+    with smtplib.SMTP(smtp_host, smtp_port) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+
+def lambda_handler(event, context):
+    secret = os.environ.get("API_SECRET_KEY")
+    headers = event.get("headers", {})
+    client_secret = headers.get("x-api-secret")
+
+    if client_secret != secret:
+        return {
+            "statusCode": 401,
+            "body": "Unauthorized"
+        }
+
+    try:
+        body = json.loads(event.get("body") or "{}")
+        to_email = body.get("to_email")
+
+        if not to_email:
+            return {
+                "statusCode": 400,
+                "body": "Missing 'to_email' in request body."
+            }
+
+        send_email(to_email)
+
+        return {
+            "statusCode": 200,
+            "body": f"Email sent to {to_email}"
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": f"Error: {str(e)}"
+        }
+
+
+# lambda/README.md
+
+
+# .github/workflows/2_deploy_lambda.yml
+# .github/workflows/deploy_lambda.yml
+name: Deploy Lambda Code
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_lambda:
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Zip Lambda function
+        run: |
+          cd lambda
+          zip ../infra/lambda.zip handler.py
+
+      - name: Upload Lambda zip to S3
+        run: aws s3 cp infra/lambda.zip s3://dlyogipchecker-bucket/lambda.zip
+
+      - name: Create Lambda function (if not exists)
+        run: |
+          if aws lambda get-function --function-name dlyogipchecker >/dev/null 2>&1; then
+            echo "☑️ Lambda function already exists."
+          else
+            ROLE_ARN=$(aws iam get-role --role-name dlyogipchecker-lambda-role --query 'Role.Arn' --output text)
+            aws lambda create-function \
+              --function-name dlyogipchecker \
+              --runtime python3.11 \
+              --handler handler.lambda_handler \
+              --code S3Bucket=dlyogipchecker-bucket,S3Key=lambda.zip \
+              --role "$ROLE_ARN" \
+              --region us-west-2
+          fi
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name dlyogipchecker \
+            --s3-bucket dlyogipchecker-bucket \
+            --s3-key lambda.zip \
+            --region us-west-2
+      
+      - name: Update Lambda environment variables
+        run: |
+          aws lambda update-function-configuration \
+            --function-name dlyogipchecker \
+            --environment "Variables={
+              API_SECRET_KEY='${{ secrets.API_SECRET_KEY }}',
+              SMTP_HOST='${{ secrets.SMTP_HOST }}',
+              SMTP_PORT='${{ secrets.SMTP_PORT }}',
+              SMTP_USER='${{ secrets.SMTP_USER }}',
+              SMTP_PASSWORD='${{ secrets.SMTP_PASSWORD }}'
+            }"
+
+
+
+# .github/workflows/3_deploy_api_gateway.yml
+name: Deploy API Gateway
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_api:
+    name: Deploy API Gateway for Lambda
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    env:
+      AWS_REGION: us-west-2
+      API_NAME: dlyogipchecker-api
+      RESOURCE_PATH: ipcheck
+      STAGE_NAME: prod
+      LAMBDA_FUNCTION_NAME: dlyogipchecker
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create REST API (if not exists)
+        id: create-api
+        run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='${API_NAME}'].id" --output text)
+          if [ -z "$API_ID" ]; then
+            API_ID=$(aws apigateway create-rest-api --name "${API_NAME}" --query 'id' --output text)
+            echo "✅ Created API Gateway with ID: $API_ID"
+          else
+            echo "☑️ API Gateway already exists with ID: $API_ID"
+          fi
+          echo "api_id=$API_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get Root Resource ID
+        id: get-root
+        run: |
+          RESOURCE_ID=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?path=='/'].id" --output text)
+          echo "resource_id=$RESOURCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Create Resource and Method
+        run: |
+          RESOURCE_EXISTS=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?pathPart=='${RESOURCE_PATH}'].id" --output text)
+
+          if [ -z "$RESOURCE_EXISTS" ]; then
+            RESOURCE_ID=$(aws apigateway create-resource \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --parent-id ${{ steps.get-root.outputs.resource_id }} \
+              --path-part "${RESOURCE_PATH}" --query 'id' --output text)
+
+            echo "✅ Created resource /${RESOURCE_PATH}"
+
+            aws apigateway put-method \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --authorization-type "NONE"
+
+            LAMBDA_ARN=$(aws lambda get-function --function-name ${LAMBDA_FUNCTION_NAME} --query 'Configuration.FunctionArn' --output text)
+
+            aws apigateway put-integration \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --type AWS_PROXY \
+              --integration-http-method POST \
+              --uri "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/${LAMBDA_ARN}/invocations"
+
+            echo "✅ Integrated Lambda function with /${RESOURCE_PATH}"
+          else
+            echo "☑️ Resource /${RESOURCE_PATH} already exists. Skipping."
+          fi
+
+      - name: Deploy API to stage
+        run: |
+          aws apigateway create-deployment \
+            --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --stage-name "${STAGE_NAME}"
+
+          echo "✅ API deployed to stage: ${STAGE_NAME}"
+
+      - name: Add Permission for Lambda to be triggered by API Gateway
+        run: |
+          aws lambda add-permission \
+            --function-name ${LAMBDA_FUNCTION_NAME} \
+            --statement-id apigateway-access \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:$(aws sts get-caller-identity --query Account --output text):${{ steps.create-api.outputs.api_id }}/*/POST/${RESOURCE_PATH}" || echo "Permission already exists"
+
+      - name: Output Public URL
+        run: |
+          echo "🌐 Public API URL:"
+          echo "https://${{ steps.create-api.outputs.api_id }}.execute-api.${AWS_REGION}.amazonaws.com/${STAGE_NAME}/${RESOURCE_PATH}"
+
+
+# .github/workflows/1_deploy_infra.yml
+# .github/workflows/deploy_infra.yml
+name: Deploy AWS Infrastructure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy infra on AWS
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Make script executable
+        run: chmod +x infra/create_infra.sh
+
+      - name: Deploy Infrastructure
+        run: ./infra/create_infra.sh
+
+
+
+# config-template.json
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+
+
+# infra/create_infra.sh
+#!/bin/bash
+set -e
+
+# Configurable values
+REGION="us-west-2"
+BUCKET_NAME="dlyogipchecker-bucket"
+ROLE_NAME="dlyogipchecker-lambda-role"
+LAMBDA_NAME="dlyogipchecker"
+ZIP_FILE="lambda.zip"
+
+echo "✅ Starting infrastructure setup..."
+
+# 1. Create S3 bucket if not exists
+if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+  echo "☑️  S3 bucket $BUCKET_NAME already exists."
+else
+  aws s3api create-bucket --bucket "$BUCKET_NAME" --region "$REGION" \
+    --create-bucket-configuration LocationConstraint="$REGION"
+  echo "✅ Created S3 bucket: $BUCKET_NAME"
+fi
+
+# 2. Create IAM Role if not exists
+if ! aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
+  aws iam create-role \
+    --role-name "$ROLE_NAME" \
+    --assume-role-policy-document file://infra/trust-policy.json
+  aws iam attach-role-policy \
+    --role-name "$ROLE_NAME" \
+    --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  echo "✅ Created IAM role: $ROLE_NAME"
+else
+  echo "☑️  IAM Role $ROLE_NAME already exists."
+fi
+
+
+
+# infra/trust-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+
+# infra/README.md
+
+
+# infra/deploy.sh
+
+
+# cli/__init__.py
+
+
+# cli/dlyogipchecker.py
+import typer
+import boto3
+import os
+import json
+from pathlib import Path
+import requests
+
+app = typer.Typer()
+
+CONFIG_PATH = os.path.expanduser("~/.dlyogipchecker/config.json")
+OUTPUT_FILE = "ip_bundle.txt"
+
+IGNORE_DIRS = {'.git', '__pycache__', '.venv', 'node_modules'}
+
+def load_config():
+    with open(CONFIG_PATH, "r") as f:
+        return json.load(f)
+
+def should_ignore(path: Path) -> bool:
+    return any(part in IGNORE_DIRS for part in path.parts)
+
+def generate_bundle(project_path: str) -> str:
+    project_root = Path(project_path).resolve()
+    bundle_lines = []
+
+    for file in project_root.rglob("*"):
+        if file.is_file() and not should_ignore(file.relative_to(project_root)):
+            rel_path = file.relative_to(project_root)
+            bundle_lines.append(f"# {rel_path}")
+            try:
+                content = file.read_text(errors='ignore')
+                bundle_lines.append(content)
+            except Exception as e:
+                bundle_lines.append(f"[Could not read file: {e}]")
+            bundle_lines.append("")  # newline between files
+
+    with open(OUTPUT_FILE, "w") as f:
+        f.write("\n".join(bundle_lines))
+
+    return OUTPUT_FILE
+
+@app.command()
+def push(project_path: str):
+    """
+    Generate IP bundle and upload to S3
+    """
+    config = load_config()
+    bucket = config["s3_bucket_name"]
+    key = "ip_bundles/ip_bundle.txt"
+
+    typer.echo("📦 Generating bundle...")
+    output_file = generate_bundle(project_path)
+
+    s3 = boto3.client(
+    "s3",
+    region_name=config.get("region_name"),
+    aws_access_key_id=config.get("aws_access_key_id"),
+    aws_secret_access_key=config.get("aws_secret_access_key")
+)
+
+    s3.upload_file(output_file, bucket, key)
+
+    typer.echo(f"✅ Uploaded to S3: s3://{bucket}/{key}")
+
+@app.command()
+def trigger(to_email: str):
+    """
+    Trigger Lambda API to process the uploaded bundle and send email.
+    """
+    config = load_config()
+    api_url = config.get("api_url")
+    api_secret = config.get("api_secret")
+
+    if not api_url or not api_secret:
+        typer.echo("❌ Missing 'api_url' or 'api_secret' in config.")
+        raise typer.Exit(1)
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-secret": api_secret
+    }
+
+    payload = {
+        "to_email": to_email
+    }
+
+    typer.echo(f"📡 Triggering Lambda at: {api_url}")
+    response = requests.post(api_url, headers=headers, json=payload)
+
+    typer.echo(f"✅ Status Code: {response.status_code}")
+    typer.echo(f"📨 Response: {response.text}")
+
+
+if __name__ == "__main__":
+    app()
+
+
+# cli/fetch_config.py
+
+
+# lambda/handler.py
+import os
+import smtplib
+import json
+from email.message import EmailMessage
+
+def send_email(to_email):
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_password = os.environ.get("SMTP_PASSWORD")
+
+    msg = EmailMessage()
+    msg["Subject"] = "DLyog IP Checker Notification"
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+    msg.set_content("Hello,\n\nYour submission has been received and is being processed.\n\n— DLyog IPChecker")
+
+    with smtplib.SMTP(smtp_host, smtp_port) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+
+def lambda_handler(event, context):
+    secret = os.environ.get("API_SECRET_KEY")
+    headers = event.get("headers", {})
+    client_secret = headers.get("x-api-secret")
+
+    if client_secret != secret:
+        return {
+            "statusCode": 401,
+            "body": "Unauthorized"
+        }
+
+    try:
+        body = json.loads(event.get("body") or "{}")
+        to_email = body.get("to_email")
+
+        if not to_email:
+            return {
+                "statusCode": 400,
+                "body": "Missing 'to_email' in request body."
+            }
+
+        send_email(to_email)
+
+        return {
+            "statusCode": 200,
+            "body": f"Email sent to {to_email}"
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": f"Error: {str(e)}"
+        }
+
+
+# lambda/README.md
+
+
+# .github/workflows/2_deploy_lambda.yml
+# .github/workflows/deploy_lambda.yml
+name: Deploy Lambda Code
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_lambda:
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Zip Lambda function
+        run: |
+          cd lambda
+          zip ../infra/lambda.zip handler.py
+
+      - name: Upload Lambda zip to S3
+        run: aws s3 cp infra/lambda.zip s3://dlyogipchecker-bucket/lambda.zip
+
+      - name: Create Lambda function (if not exists)
+        run: |
+          if aws lambda get-function --function-name dlyogipchecker >/dev/null 2>&1; then
+            echo "☑️ Lambda function already exists."
+          else
+            ROLE_ARN=$(aws iam get-role --role-name dlyogipchecker-lambda-role --query 'Role.Arn' --output text)
+            aws lambda create-function \
+              --function-name dlyogipchecker \
+              --runtime python3.11 \
+              --handler handler.lambda_handler \
+              --code S3Bucket=dlyogipchecker-bucket,S3Key=lambda.zip \
+              --role "$ROLE_ARN" \
+              --region us-west-2
+          fi
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name dlyogipchecker \
+            --s3-bucket dlyogipchecker-bucket \
+            --s3-key lambda.zip \
+            --region us-west-2
+      
+      - name: Update Lambda environment variables
+        run: |
+          aws lambda update-function-configuration \
+            --function-name dlyogipchecker \
+            --environment "Variables={
+              API_SECRET_KEY='${{ secrets.API_SECRET_KEY }}',
+              SMTP_HOST='${{ secrets.SMTP_HOST }}',
+              SMTP_PORT='${{ secrets.SMTP_PORT }}',
+              SMTP_USER='${{ secrets.SMTP_USER }}',
+              SMTP_PASSWORD='${{ secrets.SMTP_PASSWORD }}'
+            }"
+
+
+
+# .github/workflows/3_deploy_api_gateway.yml
+name: Deploy API Gateway
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_api:
+    name: Deploy API Gateway for Lambda
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    env:
+      AWS_REGION: us-west-2
+      API_NAME: dlyogipchecker-api
+      RESOURCE_PATH: ipcheck
+      STAGE_NAME: prod
+      LAMBDA_FUNCTION_NAME: dlyogipchecker
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create REST API (if not exists)
+        id: create-api
+        run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='${API_NAME}'].id" --output text)
+          if [ -z "$API_ID" ]; then
+            API_ID=$(aws apigateway create-rest-api --name "${API_NAME}" --query 'id' --output text)
+            echo "✅ Created API Gateway with ID: $API_ID"
+          else
+            echo "☑️ API Gateway already exists with ID: $API_ID"
+          fi
+          echo "api_id=$API_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get Root Resource ID
+        id: get-root
+        run: |
+          RESOURCE_ID=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?path=='/'].id" --output text)
+          echo "resource_id=$RESOURCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Create Resource and Method
+        run: |
+          RESOURCE_EXISTS=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?pathPart=='${RESOURCE_PATH}'].id" --output text)
+
+          if [ -z "$RESOURCE_EXISTS" ]; then
+            RESOURCE_ID=$(aws apigateway create-resource \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --parent-id ${{ steps.get-root.outputs.resource_id }} \
+              --path-part "${RESOURCE_PATH}" --query 'id' --output text)
+
+            echo "✅ Created resource /${RESOURCE_PATH}"
+
+            aws apigateway put-method \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --authorization-type "NONE"
+
+            LAMBDA_ARN=$(aws lambda get-function --function-name ${LAMBDA_FUNCTION_NAME} --query 'Configuration.FunctionArn' --output text)
+
+            aws apigateway put-integration \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --type AWS_PROXY \
+              --integration-http-method POST \
+              --uri "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/${LAMBDA_ARN}/invocations"
+
+            echo "✅ Integrated Lambda function with /${RESOURCE_PATH}"
+          else
+            echo "☑️ Resource /${RESOURCE_PATH} already exists. Skipping."
+          fi
+
+      - name: Deploy API to stage
+        run: |
+          aws apigateway create-deployment \
+            --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --stage-name "${STAGE_NAME}"
+
+          echo "✅ API deployed to stage: ${STAGE_NAME}"
+
+      - name: Add Permission for Lambda to be triggered by API Gateway
+        run: |
+          aws lambda add-permission \
+            --function-name ${LAMBDA_FUNCTION_NAME} \
+            --statement-id apigateway-access \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:$(aws sts get-caller-identity --query Account --output text):${{ steps.create-api.outputs.api_id }}/*/POST/${RESOURCE_PATH}" || echo "Permission already exists"
+
+      - name: Output Public URL
+        run: |
+          echo "🌐 Public API URL:"
+          echo "https://${{ steps.create-api.outputs.api_id }}.execute-api.${AWS_REGION}.amazonaws.com/${STAGE_NAME}/${RESOURCE_PATH}"
+
+
+# .github/workflows/1_deploy_infra.yml
+# .github/workflows/deploy_infra.yml
+name: Deploy AWS Infrastructure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy infra on AWS
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Make script executable
+        run: chmod +x infra/create_infra.sh
+
+      - name: Deploy Infrastructure
+        run: ./infra/create_infra.sh
+
+
+
+# config-template.json
+{
+  "api_url": "https://your-api-id.execute-api.us-west-2.amazonaws.com/prod/check",
+  "api_key": "replace-with-your-api-key"
+}
+
+
+# infra/create_infra.sh
+#!/bin/bash
+set -e
+
+# Configurable values
+REGION="us-west-2"
+BUCKET_NAME="dlyogipchecker-bucket"
+ROLE_NAME="dlyogipchecker-lambda-role"
+LAMBDA_NAME="dlyogipchecker"
+ZIP_FILE="lambda.zip"
+
+echo "✅ Starting infrastructure setup..."
+
+# 1. Create S3 bucket if not exists
+if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+  echo "☑️  S3 bucket $BUCKET_NAME already exists."
+else
+  aws s3api create-bucket --bucket "$BUCKET_NAME" --region "$REGION" \
+    --create-bucket-configuration LocationConstraint="$REGION"
+  echo "✅ Created S3 bucket: $BUCKET_NAME"
+fi
+
+# 2. Create IAM Role if not exists
+if ! aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
+  aws iam create-role \
+    --role-name "$ROLE_NAME" \
+    --assume-role-policy-document file://infra/trust-policy.json
+  aws iam attach-role-policy \
+    --role-name "$ROLE_NAME" \
+    --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  echo "✅ Created IAM role: $ROLE_NAME"
+else
+  echo "☑️  IAM Role $ROLE_NAME already exists."
+fi
+
+
+
+# infra/trust-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+
+# infra/README.md
+
+
+# infra/deploy.sh
+
+
+# cli/__init__.py
+
+
+# cli/dlyogipchecker.py
+import typer
+import boto3
+import os
+import json
+from pathlib import Path
+import requests
+
+app = typer.Typer()
+
+CONFIG_PATH = os.path.expanduser("~/.dlyogipchecker/config.json")
+OUTPUT_FILE = "ip_bundle.txt"
+
+IGNORE_DIRS = {'.git', '__pycache__', '.venv', 'node_modules'}
+
+def load_config():
+    with open(CONFIG_PATH, "r") as f:
+        return json.load(f)
+
+def should_ignore(path: Path) -> bool:
+    return any(part in IGNORE_DIRS for part in path.parts)
+
+def generate_bundle(project_path: str) -> str:
+    project_root = Path(project_path).resolve()
+    bundle_lines = []
+
+    for file in project_root.rglob("*"):
+        if file.is_file() and not should_ignore(file.relative_to(project_root)):
+            rel_path = file.relative_to(project_root)
+            bundle_lines.append(f"# {rel_path}")
+            try:
+                content = file.read_text(errors='ignore')
+                bundle_lines.append(content)
+            except Exception as e:
+                bundle_lines.append(f"[Could not read file: {e}]")
+            bundle_lines.append("")  # newline between files
+
+    with open(OUTPUT_FILE, "w") as f:
+        f.write("\n".join(bundle_lines))
+
+    return OUTPUT_FILE
+
+@app.command()
+def push(project_path: str):
+    """
+    Generate IP bundle and upload to S3
+    """
+    config = load_config()
+    bucket = config["s3_bucket_name"]
+    key = "ip_bundles/ip_bundle.txt"
+
+    typer.echo("📦 Generating bundle...")
+    output_file = generate_bundle(project_path)
+
+    s3 = boto3.client(
+    "s3",
+    region_name=config.get("region_name"),
+    aws_access_key_id=config.get("aws_access_key_id"),
+    aws_secret_access_key=config.get("aws_secret_access_key")
+)
+
+    s3.upload_file(output_file, bucket, key)
+
+    typer.echo(f"✅ Uploaded to S3: s3://{bucket}/{key}")
+
+@app.command()
+def trigger(to_email: str):
+    """
+    Trigger Lambda API to process the uploaded bundle and send email.
+    """
+    config = load_config()
+    api_url = config.get("api_url")
+    api_secret = config.get("api_secret")
+
+    if not api_url or not api_secret:
+        typer.echo("❌ Missing 'api_url' or 'api_secret' in config.")
+        raise typer.Exit(1)
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-secret": api_secret
+    }
+
+    payload = {
+        "to_email": to_email
+    }
+
+    typer.echo(f"📡 Triggering Lambda at: {api_url}")
+    response = requests.post(api_url, headers=headers, json=payload)
+
+    typer.echo(f"✅ Status Code: {response.status_code}")
+    typer.echo(f"📨 Response: {response.text}")
+
+
+if __name__ == "__main__":
+    app()
+
+
+# cli/fetch_config.py
+
+
+# lambda/handler.py
+import os
+import smtplib
+import json
+from email.message import EmailMessage
+
+def send_email(to_email):
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_password = os.environ.get("SMTP_PASSWORD")
+
+    msg = EmailMessage()
+    msg["Subject"] = "DLyog IP Checker Notification"
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+    msg.set_content("Hello,\n\nYour submission has been received and is being processed.\n\n— DLyog IPChecker")
+
+    with smtplib.SMTP(smtp_host, smtp_port) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+
+def lambda_handler(event, context):
+    secret = os.environ.get("API_SECRET_KEY")
+    headers = event.get("headers", {})
+    client_secret = headers.get("x-api-secret")
+
+    if client_secret != secret:
+        return {
+            "statusCode": 401,
+            "body": "Unauthorized"
+        }
+
+    try:
+        body = json.loads(event.get("body") or "{}")
+        to_email = body.get("to_email")
+
+        if not to_email:
+            return {
+                "statusCode": 400,
+                "body": "Missing 'to_email' in request body."
+            }
+
+        send_email(to_email)
+
+        return {
+            "statusCode": 200,
+            "body": f"Email sent to {to_email}"
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": f"Error: {str(e)}"
+        }
+
+
+# lambda/README.md
+
+
+# .github/workflows/2_deploy_lambda.yml
+# .github/workflows/deploy_lambda.yml
+name: Deploy Lambda Code
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_lambda:
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Zip Lambda function
+        run: |
+          cd lambda
+          zip ../infra/lambda.zip handler.py
+
+      - name: Upload Lambda zip to S3
+        run: aws s3 cp infra/lambda.zip s3://dlyogipchecker-bucket/lambda.zip
+
+      - name: Create Lambda function (if not exists)
+        run: |
+          if aws lambda get-function --function-name dlyogipchecker >/dev/null 2>&1; then
+            echo "☑️ Lambda function already exists."
+          else
+            ROLE_ARN=$(aws iam get-role --role-name dlyogipchecker-lambda-role --query 'Role.Arn' --output text)
+            aws lambda create-function \
+              --function-name dlyogipchecker \
+              --runtime python3.11 \
+              --handler handler.lambda_handler \
+              --code S3Bucket=dlyogipchecker-bucket,S3Key=lambda.zip \
+              --role "$ROLE_ARN" \
+              --region us-west-2
+          fi
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name dlyogipchecker \
+            --s3-bucket dlyogipchecker-bucket \
+            --s3-key lambda.zip \
+            --region us-west-2
+      
+      - name: Update Lambda environment variables
+        run: |
+          aws lambda update-function-configuration \
+            --function-name dlyogipchecker \
+            --environment "Variables={
+              API_SECRET_KEY='${{ secrets.API_SECRET_KEY }}',
+              SMTP_HOST='${{ secrets.SMTP_HOST }}',
+              SMTP_PORT='${{ secrets.SMTP_PORT }}',
+              SMTP_USER='${{ secrets.SMTP_USER }}',
+              SMTP_PASSWORD='${{ secrets.SMTP_PASSWORD }}'
+            }"
+
+
+
+# .github/workflows/3_deploy_api_gateway.yml
+name: Deploy API Gateway
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_api:
+    name: Deploy API Gateway for Lambda
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    env:
+      AWS_REGION: us-west-2
+      API_NAME: dlyogipchecker-api
+      RESOURCE_PATH: ipcheck
+      STAGE_NAME: prod
+      LAMBDA_FUNCTION_NAME: dlyogipchecker
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create REST API (if not exists)
+        id: create-api
+        run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='${API_NAME}'].id" --output text)
+          if [ -z "$API_ID" ]; then
+            API_ID=$(aws apigateway create-rest-api --name "${API_NAME}" --query 'id' --output text)
+            echo "✅ Created API Gateway with ID: $API_ID"
+          else
+            echo "☑️ API Gateway already exists with ID: $API_ID"
+          fi
+          echo "api_id=$API_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get Root Resource ID
+        id: get-root
+        run: |
+          RESOURCE_ID=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?path=='/'].id" --output text)
+          echo "resource_id=$RESOURCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Create Resource and Method
+        run: |
+          RESOURCE_EXISTS=$(aws apigateway get-resources --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --query "items[?pathPart=='${RESOURCE_PATH}'].id" --output text)
+
+          if [ -z "$RESOURCE_EXISTS" ]; then
+            RESOURCE_ID=$(aws apigateway create-resource \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --parent-id ${{ steps.get-root.outputs.resource_id }} \
+              --path-part "${RESOURCE_PATH}" --query 'id' --output text)
+
+            echo "✅ Created resource /${RESOURCE_PATH}"
+
+            aws apigateway put-method \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --authorization-type "NONE"
+
+            LAMBDA_ARN=$(aws lambda get-function --function-name ${LAMBDA_FUNCTION_NAME} --query 'Configuration.FunctionArn' --output text)
+
+            aws apigateway put-integration \
+              --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+              --resource-id "$RESOURCE_ID" \
+              --http-method POST \
+              --type AWS_PROXY \
+              --integration-http-method POST \
+              --uri "arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/${LAMBDA_ARN}/invocations"
+
+            echo "✅ Integrated Lambda function with /${RESOURCE_PATH}"
+          else
+            echo "☑️ Resource /${RESOURCE_PATH} already exists. Skipping."
+          fi
+
+      - name: Deploy API to stage
+        run: |
+          aws apigateway create-deployment \
+            --rest-api-id ${{ steps.create-api.outputs.api_id }} \
+            --stage-name "${STAGE_NAME}"
+
+          echo "✅ API deployed to stage: ${STAGE_NAME}"
+
+      - name: Add Permission for Lambda to be triggered by API Gateway
+        run: |
+          aws lambda add-permission \
+            --function-name ${LAMBDA_FUNCTION_NAME} \
+            --statement-id apigateway-access \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:$(aws sts get-caller-identity --query Account --output text):${{ steps.create-api.outputs.api_id }}/*/POST/${RESOURCE_PATH}" || echo "Permission already exists"
+
+      - name: Output Public URL
+        run: |
+          echo "🌐 Public API URL:"
+          echo "https://${{ steps.create-api.outputs.api_id }}.execute-api.${AWS_REGION}.amazonaws.com/${STAGE_NAME}/${RESOURCE_PATH}"
+
+
+# .github/workflows/1_deploy_infra.yml
+# .github/workflows/deploy_infra.yml
+name: Deploy AWS Infrastructure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy infra on AWS
+    runs-on: [self-hosted, Linux, X64, aws, ipchecker]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Make script executable
+        run: chmod +x infra/create_infra.sh
+
+      - name: Deploy Infrastructure
+        run: ./infra/create_infra.sh
+

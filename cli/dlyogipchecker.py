@@ -51,7 +51,13 @@ def push(project_path: str):
     typer.echo("📦 Generating bundle...")
     output_file = generate_bundle(project_path)
 
-    s3 = boto3.client("s3", region_name="us-west-2")
+    s3 = boto3.client(
+    "s3",
+    region_name=config.get("region_name"),
+    aws_access_key_id=config.get("aws_access_key_id"),
+    aws_secret_access_key=config.get("aws_secret_access_key")
+)
+
     s3.upload_file(output_file, bucket, key)
 
     typer.echo(f"✅ Uploaded to S3: s3://{bucket}/{key}")
