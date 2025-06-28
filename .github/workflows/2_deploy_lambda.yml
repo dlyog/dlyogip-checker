@@ -50,10 +50,15 @@ jobs:
             --s3-key lambda.zip \
             --region us-west-2
       
-      - name: Update Lambda Environment Variables
+      - name: Update Lambda environment variables
         run: |
           aws lambda update-function-configuration \
             --function-name dlyogipchecker \
-            --environment "Variables={API_SECRET_KEY=${{ secrets.API_SECRET_KEY }}}" \
-            --region us-west-2
+            --environment "Variables={
+              API_SECRET_KEY='${{ secrets.API_SECRET_KEY }}',
+              SMTP_HOST='${{ secrets.SMTP_HOST }}',
+              SMTP_PORT='${{ secrets.SMTP_PORT }}',
+              SMTP_USER='${{ secrets.SMTP_USER }}',
+              SMTP_PASSWORD='${{ secrets.SMTP_PASSWORD }}'
+            }"
 
