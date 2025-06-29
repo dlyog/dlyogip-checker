@@ -47,10 +47,24 @@ def call_sonar(prompt):
             {"role": "user", "content": prompt},
         ]
     }
-    response = requests.post("https://api.perplexity.ai/chat/completions", headers=headers, json=data)
-    if response.status_code != 200:
-        raise Exception(f"Sonar API failed with status code {response.status_code}: {response.text}")
-    return response.json()["choices"][0]["message"]["content"].strip()
+
+    try:
+        logger.info("🌐 Calling Perplexity API with timeout...")
+        response = requests.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers=headers,
+            json=data,
+            timeout=180  # timeout in seconds (adjust as needed)
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"].strip()
+    except requests.Timeout:
+        logger.error("⏱️ Perplexity API request timed out.")
+        raise
+    except requests.RequestException as e:
+        logger.error("❌ Perplexity API request failed: %s", str(e))
+        raise
+
 
 
 def lambda_handler(event, context):
@@ -63,12 +77,13 @@ def lambda_handler(event, context):
         key = record["s3"]["object"]["key"]
         logger.info(f"📥 S3 triggered: bucket={bucket}, key={key}")
 
-        # Use default to_email from ENV (you can modify if dynamic is needed)
+        # Use default to_email from ENV
         to_email = os.environ.get("TO_EMAIL")
         if not to_email:
             logger.warning("❌ No TO_EMAIL env var set.")
             return {"statusCode": 200, "body": "TO_EMAIL not configured"}
 
+        # Fetch S3 content
         s3 = boto3.client("s3")
         response = s3.get_object(Bucket=bucket, Key=key)
         content = response["Body"].read().decode("utf-8")
@@ -76,18 +91,23 @@ def lambda_handler(event, context):
         max_chunk_size = 3000
         chunks = [content[i:i + max_chunk_size] for i in range(0, len(content), max_chunk_size)]
 
-        all_findings = []
-        for idx, chunk in enumerate(chunks):
-            prompt = f"Analyze the following code for potential IP issues.\n\n{chunk}"
-            result = call_sonar(prompt)
-            all_findings.append(f"<h3>Chunk {idx + 1}</h3><pre>{result}</pre>")
+        if not chunks:
+            logger.warning("⚠️ Empty bundle content.")
+            return {"statusCode": 200, "body": "Empty bundle."}
+
+        # Only send the first chunk for now
+        prompt = f"Analyze the following code for potential IP issues.\n\n{chunks[0]}"
+        logger.info("🔍 Prompt sent to Sonar:\n%s", prompt)
+
+        result = call_sonar(prompt)
+        logger.info("🧠 Sonar response:\n%s", result)
 
         final_report = f"""
         <html>
-        <head><style>body {{ font-family: Arial; }}</style></head>
         <body>
         <h1>DLyog IP Checker Report</h1>
-        {''.join(all_findings)}
+        <h3>Chunk 1</h3>
+        <pre>{result}</pre>
         <footer><p style='margin-top:40px;'>© 2025 DLyog</p></footer>
         </body>
         </html>
@@ -113,8 +133,7 @@ def lambda_handler(event, context):
         """
 
         try:
-            body = json.loads(event.get("body") or "{}")
-            to_email = body.get("to_email")
+            to_email = os.environ.get("TO_EMAIL")
             if to_email:
                 logger.info("📧 Sending error report email")
                 send_email(to_email, "DLyog IP Check Error Report", fallback_body)
@@ -125,3 +144,4 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "body": "⚠️ An error occurred. If email was provided, an error report has been sent."
         }
+
