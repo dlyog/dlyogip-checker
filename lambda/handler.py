@@ -2,10 +2,14 @@ import os
 import smtplib
 import json
 import boto3
-from email.message import EmailMessage
-import urllib.parse
-import requests
+import logging
 import traceback
+from email.message import EmailMessage
+import requests
+
+# Set up logging for CloudWatch
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def send_email(to_email, subject, html_body):
@@ -36,19 +40,22 @@ def call_sonar(prompt):
     data = {
         "model": "sonar-pro",
         "messages": [
-            {"role": "system", "content": "You are an IP rights analyst. Return a JSON with summary and detailed validation."},
+            {
+                "role": "system",
+                "content": "You are an IP rights analyst. Return a JSON with summary and detailed validation.",
+            },
             {"role": "user", "content": prompt},
         ]
     }
     response = requests.post("https://api.perplexity.ai/chat/completions", headers=headers, json=data)
     if response.status_code != 200:
-        raise Exception("Sonar API failed")
-    content = response.json()["choices"][0]["message"]["content"].strip()
-    return content
+        raise Exception(f"Sonar API failed with status code {response.status_code}: {response.text}")
+    return response.json()["choices"][0]["message"]["content"].strip()
 
 
 def lambda_handler(event, context):
     try:
+        logger.info("🔐 Validating API secret")
         secret = os.environ.get("API_SECRET_KEY")
         headers = event.get("headers", {})
         client_secret = headers.get("x-api-secret")
@@ -59,6 +66,7 @@ def lambda_handler(event, context):
                 "body": "Unauthorized: Invalid API secret"
             }
 
+        logger.info("📨 Parsing input body")
         body = json.loads(event.get("body") or "{}")
         to_email = body.get("to_email")
 
@@ -68,21 +76,26 @@ def lambda_handler(event, context):
                 "body": "Missing 'to_email' in request body."
             }
 
+        logger.info("📥 Fetching bundle from S3")
         s3 = boto3.client("s3")
         bucket = os.environ.get("S3_BUCKET", "dlyogipchecker-bucket")
         key = "ip_bundles/ip_bundle.txt"
         response = s3.get_object(Bucket=bucket, Key=key)
         content = response["Body"].read().decode("utf-8")
 
+        logger.info(f"📄 Loaded {len(content)} characters from bundle")
         max_chunk_size = 3000
         chunks = [content[i:i + max_chunk_size] for i in range(0, len(content), max_chunk_size)]
+        logger.info(f"🔍 Split content into {len(chunks)} chunks")
 
         all_findings = []
         for idx, chunk in enumerate(chunks):
+            logger.info(f"⚙️ Analyzing chunk {idx + 1}/{len(chunks)}")
             prompt = f"Analyze the following code for potential copyright, patent, or trademark issues. Provide summary and details in JSON format.\n\n{chunk}"
             result = call_sonar(prompt)
             all_findings.append(f"<h3>Chunk {idx + 1}</h3><pre>{result}</pre>")
 
+        logger.info("✅ Sonar analysis complete. Building HTML report.")
         final_report = f"""
         <html>
         <head><style>body {{ font-family: Arial; }}</style></head>
@@ -94,6 +107,7 @@ def lambda_handler(event, context):
         </html>
         """
 
+        logger.info("📧 Sending report email")
         send_email(to_email, "DLyog IP Check Report", final_report)
 
         return {
@@ -103,6 +117,8 @@ def lambda_handler(event, context):
 
     except Exception as e:
         error_trace = traceback.format_exc()
+        logger.error("❌ Lambda error:\n%s", error_trace)
+
         fallback_body = f"""
         <html>
         <body>
@@ -117,9 +133,10 @@ def lambda_handler(event, context):
             body = json.loads(event.get("body") or "{}")
             to_email = body.get("to_email")
             if to_email:
+                logger.info("📧 Sending error report email")
                 send_email(to_email, "DLyog IP Check Error Report", fallback_body)
-        except:
-            pass
+        except Exception as inner:
+            logger.error("🚨 Failed to send fallback email: %s", str(inner))
 
         return {
             "statusCode": 200,

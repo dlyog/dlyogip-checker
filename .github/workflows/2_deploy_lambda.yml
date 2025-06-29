@@ -67,4 +67,13 @@ jobs:
               SMTP_PASSWORD='${{ secrets.SMTP_PASSWORD }}',
               PERPLEXITY_API_KEY=${{ secrets.PERPLEXITY_API_KEY }}
             }"
+      
+      - name: Increase Lambda timeout & memory
+        run: |
+          aws lambda update-function-configuration \
+            --function-name dlyogipchecker \
+            --timeout 30 \
+            --memory-size 256 \
+            --region us-west-2
+
 
