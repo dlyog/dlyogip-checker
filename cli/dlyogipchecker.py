@@ -23,8 +23,14 @@ def generate_bundle(project_path: str) -> str:
     project_root = Path(project_path).resolve()
     bundle_lines = []
 
+    allowed_extensions = {".py", ".md"}
+
     for file in project_root.rglob("*"):
-        if file.is_file() and not should_ignore(file.relative_to(project_root)):
+        if (
+            file.is_file() and
+            not should_ignore(file.relative_to(project_root)) and
+            file.suffix in allowed_extensions
+        ):
             rel_path = file.relative_to(project_root)
             bundle_lines.append(f"# {rel_path}")
             try:
@@ -38,6 +44,7 @@ def generate_bundle(project_path: str) -> str:
         f.write("\n".join(bundle_lines))
 
     return OUTPUT_FILE
+
 
 @app.command()
 def push(project_path: str):

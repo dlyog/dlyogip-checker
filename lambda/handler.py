@@ -11,7 +11,6 @@ import requests
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-
 def send_email(to_email, subject, html_body):
     smtp_host = os.environ.get("SMTP_HOST")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
@@ -54,7 +53,7 @@ def call_sonar(prompt):
             "https://api.perplexity.ai/chat/completions",
             headers=headers,
             json=data,
-            timeout=180  # timeout in seconds (adjust as needed)
+            timeout=180  # seconds
         )
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"].strip()
@@ -66,24 +65,52 @@ def call_sonar(prompt):
         raise
 
 
+def format_html_report(json_text):
+    try:
+        data = json.loads(json_text)
+    except Exception:
+        logger.warning("⚠️ Failed to parse JSON from Sonar. Returning raw content.")
+        return f"<pre>{json_text}</pre>"
+
+    html = "<div>"
+    if "summary" in data:
+        html += f"<h2>🔍 Summary</h2><p>{data['summary']}</p>"
+
+    if "validation" in data and isinstance(data["validation"], dict):
+        html += "<h2>📋 Validation Results</h2><ul>"
+        for key, val in data["validation"].items():
+            html += f"<li><strong>{key}:</strong> "
+            if isinstance(val, dict):
+                html += "<ul>"
+                for subkey, subval in val.items():
+                    html += f"<li>{subkey}: {subval}</li>"
+                html += "</ul>"
+            else:
+                html += f"{val}"
+            html += "</li>"
+        html += "</ul>"
+
+    if "verdict" in data:
+        html += f"<h2>✅ Verdict</h2><p><strong>{data['verdict']}</strong></p>"
+
+    html += "</div>"
+    return html
+
 
 def lambda_handler(event, context):
     try:
         logger.info("📦 Event received: %s", json.dumps(event))
 
-        # Parse S3 event
         record = event["Records"][0]
         bucket = record["s3"]["bucket"]["name"]
         key = record["s3"]["object"]["key"]
         logger.info(f"📥 S3 triggered: bucket={bucket}, key={key}")
 
-        # Use default to_email from ENV
         to_email = os.environ.get("TO_EMAIL")
         if not to_email:
             logger.warning("❌ No TO_EMAIL env var set.")
             return {"statusCode": 200, "body": "TO_EMAIL not configured"}
 
-        # Fetch S3 content
         s3 = boto3.client("s3")
         response = s3.get_object(Bucket=bucket, Key=key)
         content = response["Body"].read().decode("utf-8")
@@ -95,20 +122,35 @@ def lambda_handler(event, context):
             logger.warning("⚠️ Empty bundle content.")
             return {"statusCode": 200, "body": "Empty bundle."}
 
-        # Only send the first chunk for now
-        prompt = f"Analyze the following code for potential IP issues.\n\n{chunks[0]}"
+        prompt = f"Analyze the following code for potential copyright, patent, or trademark issues. Provide summary and details in JSON format.\n\n{chunks[0]}"
         logger.info("🔍 Prompt sent to Sonar:\n%s", prompt)
 
         result = call_sonar(prompt)
-        logger.info("🧠 Sonar response:\n%s", result)
+        logger.info("🧠 Sonar response (raw):\n%s", result)
+
+        formatted_html = format_html_report(result)
 
         final_report = f"""
         <html>
+        <head><style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+            h1 {{ color: #333; }}
+            h2 {{ margin-top: 24px; color: #2a4d7f; }}
+            ul {{ margin-left: 20px; }}
+            footer {{ margin-top: 40px; font-size: 0.9em; color: #888; }}
+        </style></head>
         <body>
         <h1>DLyog IP Checker Report</h1>
-        <h3>Chunk 1</h3>
-        <pre>{result}</pre>
-        <footer><p style='margin-top:40px;'>© 2025 DLyog</p></footer>
+        {formatted_html}
+        <footer>
+  <p>© 2025 DLyog Lab</p>
+  <p style="margin-top:20px; font-size:0.9em; color:#666;">
+    <strong>Disclaimer:</strong> This analysis is part of an AI experiment and may contain inaccuracies.
+    For professional advice on intellectual property including patents, trademarks, or copyrights,
+    always consult a qualified IP attorney.
+  </p>
+</footer>
+
         </body>
         </html>
         """
@@ -127,7 +169,15 @@ def lambda_handler(event, context):
         <body>
         <h2>❌ Error in DLyog Lambda Execution</h2>
         <pre>{error_trace}</pre>
-        <footer><p style='margin-top:40px;'>© 2025 DLyog</p></footer>
+        <footer>
+  <p>© 2025 DLyog Lab</p>
+  <p style="margin-top:20px; font-size:0.9em; color:#666;">
+    <strong>Disclaimer:</strong> This analysis is part of an AI experiment and may contain inaccuracies.
+    For professional advice on intellectual property including patents, trademarks, or copyrights,
+    always consult a qualified IP attorney.
+  </p>
+</footer>
+
         </body>
         </html>
         """
@@ -144,4 +194,3 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "body": "⚠️ An error occurred. If email was provided, an error report has been sent."
         }
-
