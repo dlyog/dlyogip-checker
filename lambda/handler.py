@@ -4,7 +4,7 @@ Triggered by an S3 `ip_bundle.zip` upload.
 • Downloads ZIP to /tmp
 • Reads up to 10 files
 • Calls Perplexity (Sonar) once per file
-• Aggregates results into a single HTML report
+• Aggregates results into a styled HTML report
 • Emails the report
 """
 
@@ -186,32 +186,79 @@ def lambda_handler(event, context):
 
             sections.append(f"<h2>{fname}</h2>{html_snip}")
 
-        # 6. Assemble final HTML
+        # 6. Assemble final HTML (✨ fancy styling here)
         report_body = "\n".join(sections)
         final_html = f"""
-        <html>
+        <!doctype html>
+        <html lang="en">
         <head>
           <meta charset="utf-8" />
+          <title>DLyog IP Checker Report</title>
           <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
-            h1 {{ color: #333; }}
-            h2 {{ margin-top: 1.4em; color: #2a4d7f; }}
-            h3 {{ margin-top: 0.8em; }}
+            body {{
+              margin: 0;
+              padding: 40px 0;
+              background: #f5f7fa;
+              font-family: Arial, Helvetica, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }}
+            .card {{
+              max-width: 900px;
+              margin: 0 auto;
+              background: #ffffff;
+              border: 1px solid #e0e4e8;
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(0,0,0,.05);
+              overflow: hidden;
+            }}
+            header {{
+              background: linear-gradient(135deg, #2a4d7f 0%, #4268a2 100%);
+              color: #fff;
+              padding: 24px 32px;
+            }}
+            header h1 {{
+              margin: 0;
+              font-size: 1.75rem;
+              letter-spacing: .5px;
+            }}
+            main {{
+              padding: 32px;
+            }}
+            h2 {{
+              margin-top: 1.6em;
+              font-size: 1.25rem;
+              color: #2a4d7f;
+              border-bottom: 1px solid #e0e4e8;
+              padding-bottom: 4px;
+            }}
+            h3 {{ margin-top: 1.2em; }}
+            h4 {{ margin: 1em 0 .6em; font-size: 1rem; }}
             ul {{ margin-left: 1.2em; }}
-            footer {{ margin-top: 40px; font-size: 0.9em; color: #666; }}
+            footer {{
+              border-top: 1px solid #e0e4e8;
+              background: #fafbfc;
+              padding: 24px 32px;
+              font-size: 0.85rem;
+              color: #666;
+            }}
+            footer p {{ margin: 0 0 8px; }}
           </style>
         </head>
         <body>
-          <h1>DLyog IP Checker Report</h1>
-          {report_body}
-          <footer>
-            <p>© 2025 DLyog Lab</p>
-            <p>
-              <strong>Disclaimer:</strong> This analysis is part of an AI experiment
-              and may contain inaccuracies. For professional advice on intellectual
-              property, always consult a qualified IP attorney.
-            </p>
-          </footer>
+          <div class="card">
+            <header>
+              <h1>DLyog IP Checker Report</h1>
+            </header>
+            <main>
+              {report_body}
+            </main>
+            <footer>
+              <p>© 2025 DLyog Lab</p>
+              <p><strong>Disclaimer:</strong> This analysis is part of an AI experiment and may contain inaccuracies.
+              For professional advice on intellectual property, always consult a qualified IP attorney.</p>
+            </footer>
+          </div>
         </body>
         </html>
         """
