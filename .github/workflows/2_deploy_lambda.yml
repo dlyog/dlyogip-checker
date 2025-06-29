@@ -73,7 +73,7 @@ jobs:
         run: |
           aws lambda update-function-configuration \
             --function-name dlyogipchecker \
-            --timeout 30 \
+            --timeout 300 \
             --memory-size 256 \
             --region us-west-2
 
