@@ -19,10 +19,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-      - name: Zip Lambda function
+      - name: Package Lambda with dependencies
         run: |
           cd lambda
-          zip ../infra/lambda.zip handler.py
+          mkdir -p package
+          pip install requests -t package
+          cp handler.py package/
+          cd package
+          zip -r9 ../../infra/lambda.zip .
+
 
       - name: Upload Lambda zip to S3
         run: aws s3 cp infra/lambda.zip s3://dlyogipchecker-bucket/lambda.zip
