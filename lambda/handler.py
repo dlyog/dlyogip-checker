@@ -7,6 +7,7 @@ import urllib.parse
 import requests
 import traceback
 
+
 def send_email(to_email, subject, html_body):
     smtp_host = os.environ.get("SMTP_HOST")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
@@ -24,6 +25,7 @@ def send_email(to_email, subject, html_body):
         server.starttls()
         server.login(smtp_user, smtp_password)
         server.send_message(msg)
+
 
 def call_sonar(prompt):
     api_key = os.environ.get("PERPLEXITY_API_KEY")
@@ -44,24 +46,25 @@ def call_sonar(prompt):
     content = response.json()["choices"][0]["message"]["content"].strip()
     return content
 
+
 def lambda_handler(event, context):
-    secret = os.environ.get("API_SECRET_KEY")
-    headers = event.get("headers", {})
-    client_secret = headers.get("x-api-secret")
-
-    if client_secret != secret:
-        return {
-            "statusCode": 401,
-            "body": "Unauthorized"
-        }
-
     try:
+        secret = os.environ.get("API_SECRET_KEY")
+        headers = event.get("headers", {})
+        client_secret = headers.get("x-api-secret")
+
+        if client_secret != secret:
+            return {
+                "statusCode": 200,
+                "body": "Unauthorized: Invalid API secret"
+            }
+
         body = json.loads(event.get("body") or "{}")
         to_email = body.get("to_email")
 
         if not to_email:
             return {
-                "statusCode": 400,
+                "statusCode": 200,
                 "body": "Missing 'to_email' in request body."
             }
 
@@ -72,13 +75,13 @@ def lambda_handler(event, context):
         content = response["Body"].read().decode("utf-8")
 
         max_chunk_size = 3000
-        chunks = [content[i:i+max_chunk_size] for i in range(0, len(content), max_chunk_size)]
+        chunks = [content[i:i + max_chunk_size] for i in range(0, len(content), max_chunk_size)]
 
         all_findings = []
         for idx, chunk in enumerate(chunks):
             prompt = f"Analyze the following code for potential copyright, patent, or trademark issues. Provide summary and details in JSON format.\n\n{chunk}"
             result = call_sonar(prompt)
-            all_findings.append(f"<h3>Chunk {idx+1}</h3><pre>{result}</pre>")
+            all_findings.append(f"<h3>Chunk {idx + 1}</h3><pre>{result}</pre>")
 
         final_report = f"""
         <html>
@@ -95,19 +98,30 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
-            "body": f"Report sent to {to_email}"
+            "body": f"✅ Report sent to {to_email}"
         }
 
     except Exception as e:
-        error_message = f"Exception: {str(e)}\nTraceback:\n{traceback.format_exc()}"
+        error_trace = traceback.format_exc()
+        fallback_body = f"""
+        <html>
+        <body>
+        <h2>❌ Error in DLyog Lambda Execution</h2>
+        <pre>{error_trace}</pre>
+        <footer><p style='margin-top:40px;'>© 2025 DLyog</p></footer>
+        </body>
+        </html>
+        """
+
         try:
-            send_email(to_email, "DLyog IP Check Report - Error", f"<pre>{error_message}</pre>")
-        except Exception as email_error:
-            return {
-                "statusCode": 500,
-                "body": f"Fatal Error. Cannot email: {str(email_error)}\nOriginal Error: {error_message}"
-            }
+            body = json.loads(event.get("body") or "{}")
+            to_email = body.get("to_email")
+            if to_email:
+                send_email(to_email, "DLyog IP Check Error Report", fallback_body)
+        except:
+            pass
+
         return {
-            "statusCode": 500,
-            "body": f"Error occurred and was emailed to {to_email}"
+            "statusCode": 200,
+            "body": "⚠️ An error occurred. If email was provided, an error report has been sent."
         }
