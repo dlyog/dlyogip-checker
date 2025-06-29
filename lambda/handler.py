@@ -5,6 +5,7 @@ import boto3
 from email.message import EmailMessage
 import urllib.parse
 import requests
+import traceback
 
 def send_email(to_email, subject, html_body):
     smtp_host = os.environ.get("SMTP_HOST")
@@ -65,7 +66,7 @@ def lambda_handler(event, context):
             }
 
         s3 = boto3.client("s3")
-        bucket = os.environ.get("S3_BUCKET", "DLYog Labipchecker-bucket")
+        bucket = os.environ.get("S3_BUCKET", "dlyogipchecker-bucket")
         key = "ip_bundles/ip_bundle.txt"
         response = s3.get_object(Bucket=bucket, Key=key)
         content = response["Body"].read().decode("utf-8")
@@ -83,14 +84,14 @@ def lambda_handler(event, context):
         <html>
         <head><style>body {{ font-family: Arial; }}</style></head>
         <body>
-        <h1>DLYog Lab IP Checker Report</h1>
+        <h1>DLyog IP Checker Report</h1>
         {''.join(all_findings)}
-        <footer><p style='margin-top:40px;'>© 2025 DLYog Lab Lab</p></footer>
+        <footer><p style='margin-top:40px;'>© 2025 DLyog</p></footer>
         </body>
         </html>
         """
 
-        send_email(to_email, "DLYog Lab IP Check Report", final_report)
+        send_email(to_email, "DLyog IP Check Report", final_report)
 
         return {
             "statusCode": 200,
@@ -98,7 +99,15 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+        error_message = f"Exception: {str(e)}\nTraceback:\n{traceback.format_exc()}"
+        try:
+            send_email(to_email, "DLyog IP Check Report - Error", f"<pre>{error_message}</pre>")
+        except Exception as email_error:
+            return {
+                "statusCode": 500,
+                "body": f"Fatal Error. Cannot email: {str(email_error)}\nOriginal Error: {error_message}"
+            }
         return {
             "statusCode": 500,
-            "body": f"Error: {str(e)}"
+            "body": f"Error occurred and was emailed to {to_email}"
         }
