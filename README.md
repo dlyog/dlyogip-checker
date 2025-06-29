@@ -2,7 +2,7 @@
 
 DLyog IP Checker is an automated system for validating software code bundles against potential **Intellectual Property (IP) risks** such as copyright, patent, and trademark violations. It uses an **AWS Lambda** backend triggered via **S3 file upload events**, with email reporting and **AI analysis powered by Perplexity's Sonar model**.
 
-![DLyog IP Checker Theme](theme.png)
+![DLyog IP Checker Architecture](architecture.png)
 
 ## 🏗️ Architecture Overview
 
