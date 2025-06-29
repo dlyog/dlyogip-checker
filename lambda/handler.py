@@ -55,47 +55,33 @@ def call_sonar(prompt):
 
 def lambda_handler(event, context):
     try:
-        logger.info("🔐 Validating API secret")
-        secret = os.environ.get("API_SECRET_KEY")
-        headers = event.get("headers", {})
-        client_secret = headers.get("x-api-secret")
+        logger.info("📦 Event received: %s", json.dumps(event))
 
-        if client_secret != secret:
-            return {
-                "statusCode": 200,
-                "body": "Unauthorized: Invalid API secret"
-            }
+        # Parse S3 event
+        record = event["Records"][0]
+        bucket = record["s3"]["bucket"]["name"]
+        key = record["s3"]["object"]["key"]
+        logger.info(f"📥 S3 triggered: bucket={bucket}, key={key}")
 
-        logger.info("📨 Parsing input body")
-        body = json.loads(event.get("body") or "{}")
-        to_email = body.get("to_email")
-
+        # Use default to_email from ENV (you can modify if dynamic is needed)
+        to_email = os.environ.get("TO_EMAIL")
         if not to_email:
-            return {
-                "statusCode": 200,
-                "body": "Missing 'to_email' in request body."
-            }
+            logger.warning("❌ No TO_EMAIL env var set.")
+            return {"statusCode": 200, "body": "TO_EMAIL not configured"}
 
-        logger.info("📥 Fetching bundle from S3")
         s3 = boto3.client("s3")
-        bucket = os.environ.get("S3_BUCKET", "dlyogipchecker-bucket")
-        key = "ip_bundles/ip_bundle.txt"
         response = s3.get_object(Bucket=bucket, Key=key)
         content = response["Body"].read().decode("utf-8")
 
-        logger.info(f"📄 Loaded {len(content)} characters from bundle")
         max_chunk_size = 3000
         chunks = [content[i:i + max_chunk_size] for i in range(0, len(content), max_chunk_size)]
-        logger.info(f"🔍 Split content into {len(chunks)} chunks")
 
         all_findings = []
         for idx, chunk in enumerate(chunks):
-            logger.info(f"⚙️ Analyzing chunk {idx + 1}/{len(chunks)}")
-            prompt = f"Analyze the following code for potential copyright, patent, or trademark issues. Provide summary and details in JSON format.\n\n{chunk}"
+            prompt = f"Analyze the following code for potential IP issues.\n\n{chunk}"
             result = call_sonar(prompt)
             all_findings.append(f"<h3>Chunk {idx + 1}</h3><pre>{result}</pre>")
 
-        logger.info("✅ Sonar analysis complete. Building HTML report.")
         final_report = f"""
         <html>
         <head><style>body {{ font-family: Arial; }}</style></head>
@@ -110,10 +96,7 @@ def lambda_handler(event, context):
         logger.info("📧 Sending report email")
         send_email(to_email, "DLyog IP Check Report", final_report)
 
-        return {
-            "statusCode": 200,
-            "body": f"✅ Report sent to {to_email}"
-        }
+        return {"statusCode": 200, "body": f"✅ Report sent to {to_email}"}
 
     except Exception as e:
         error_trace = traceback.format_exc()

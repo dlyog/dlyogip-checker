@@ -42,7 +42,7 @@ def generate_bundle(project_path: str) -> str:
 @app.command()
 def push(project_path: str):
     """
-    Generate IP bundle and upload to S3
+    Generate IP bundle and upload to S3 (Lambda is triggered via S3 event).
     """
     config = load_config()
     bucket = config["s3_bucket_name"]
@@ -52,43 +52,16 @@ def push(project_path: str):
     output_file = generate_bundle(project_path)
 
     s3 = boto3.client(
-    "s3",
-    region_name=config.get("region_name"),
-    aws_access_key_id=config.get("aws_access_key_id"),
-    aws_secret_access_key=config.get("aws_secret_access_key")
-)
+        "s3",
+        region_name=config.get("region_name"),
+        aws_access_key_id=config.get("aws_access_key_id"),
+        aws_secret_access_key=config.get("aws_secret_access_key")
+    )
 
     s3.upload_file(output_file, bucket, key)
 
     typer.echo(f"✅ Uploaded to S3: s3://{bucket}/{key}")
-
-@app.command()
-def trigger(to_email: str):
-    """
-    Trigger Lambda API to process the uploaded bundle and send email.
-    """
-    config = load_config()
-    api_url = config.get("api_url")
-    api_secret = config.get("api_secret")
-
-    if not api_url or not api_secret:
-        typer.echo("❌ Missing 'api_url' or 'api_secret' in config.")
-        raise typer.Exit(1)
-
-    headers = {
-        "Content-Type": "application/json",
-        "x-api-secret": api_secret
-    }
-
-    payload = {
-        "to_email": to_email
-    }
-
-    typer.echo(f"📡 Triggering Lambda at: {api_url}")
-    response = requests.post(api_url, headers=headers, json=payload)
-
-    typer.echo(f"✅ Status Code: {response.status_code}")
-    typer.echo(f"📨 Response: {response.text}")
+    typer.echo("🚀 Lambda will be triggered automatically.")
 
 
 if __name__ == "__main__":
