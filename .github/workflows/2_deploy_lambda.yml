@@ -1,5 +1,5 @@
 # .github/workflows/deploy_lambda.yml
-name: Deploy Lambda Code
+name: 2. Deploy Lambda Code
 
 on:
   workflow_dispatch:

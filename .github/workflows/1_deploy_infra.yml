@@ -1,5 +1,5 @@
 # .github/workflows/deploy_infra.yml
-name: Deploy AWS Infrastructure
+name: 1. Deploy AWS Infrastructure
 
 on:
   workflow_dispatch:

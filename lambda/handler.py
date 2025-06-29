@@ -248,13 +248,16 @@ def lambda_handler(event, context):
         <body>
           <div class="card">
             <header>
-              <h1>DLyog IP Checker Report</h1>
+              <h1>DLYogIPChecker</h1>
+            <h2 style="margin:0; font-size:1rem; font-weight:400;">
+                An AI Experiment for AWS Lambda Hackathon
+            </h2>
             </header>
             <main>
               {report_body}
             </main>
             <footer>
-              <p>© 2025 DLyog Lab</p>
+              <p>© 2025 DLYog Lab Research Services LLC</p>
               <p><strong>Disclaimer:</strong> This analysis is part of an AI experiment and may contain inaccuracies.
               For professional advice on intellectual property, always consult a qualified IP attorney.</p>
             </footer>
